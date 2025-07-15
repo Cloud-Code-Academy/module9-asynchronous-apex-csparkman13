@@ -17,51 +17,81 @@
  * 
  * Note: The class below contains placeholders for implementing a queueable job to update accounts and opportunities.
  */
-public with sharing class NextStepQueueable {
 
-    // Member variable to store the accounts
-    private Map<Id,Account> accounts;
+public with sharing class NextStepQueueable implements Queueable {
 
-    // Constructor to accept the accounts
-    public NextStepQueueable(Map<Id,Account> accounts) {
-        // Store the accounts in a member variable
+    // Member Variable to store the Accounts that get passed into the Job
+    private Map<Id, Account> accounts;
+
+    // Constructor to accept the Accounts and stores them for use in execute()
+    public NextStepQueueable(Map<Id, Account> accounts) {
+        // Store the Accounts in a Member Variable
+        this.accounts = accounts;
     }
 
-    // Method to queue the job
+    // Method to Queue the Job
     public static void enqueueJob() {
-        // Get 10 accounts with Next Step populated
+        // Get 10 Accounts with Next Step populated
+        List<Account> accountList = [
+            SELECT Id, Next_Step__c
+            FROM Account
+            WHERE Next_Step__c != null
+            LIMIT 10
+        ];
 
-        // If there are any accounts, queue the job using System.enqueueJob
+        // If there are any Accounts, Queue the Job using System.enqueueJob
+        if (!accountList.isEmpty()) {
+            Map<Id, Account> accountMap = new Map<Id, Account>(accountList); // Convert List to Map<Id, Account>
+            System.enqueueJob(new NextStepQueueable(accountMap)); // Queue the job with those accounts
+        }
     }
 
     /*
-     * Update/Uncomment the template code to create a method
-     * Method to execute the queueable job
+     * Update/Uncomment the template code to create a Method
+     * Method to execute the Queueable Job
      */
-    //[public | private ] [static] data_type execute (input parameters) {
-        // Get the accounts from the member variable
 
-            // Remove the Next Step using the helper method
+    public void execute(QueueableContext context) {
+        // Get the Accounts from the Member Variable
+        if (accounts == null || accounts.isEmpty()) return;
 
-        // Update the accounts
+        // Remove the Next Step using the Helper Method
+        for (Account acc : accounts.values()) {
+            removeNextStep(acc);
+        }
 
-        // Get the opportunities related to the accounts
+        // Update the Accounts
+        update accounts.values();
 
-            // Remove the Next Step using the helper method
+        // Get the Opportunities Related to the Accounts
+        Set<Id> accountIds = accounts.keySet();
 
-        // Update the opportunities
+        List<Opportunity> oppList = [
+            SELECT Id, NextStep, AccountId
+            FROM Opportunity
+            WHERE AccountId IN :accountIds
+        ];
 
-        // Call the enqueueJob method to queue another job to process more records.
-    //}
+        // Remove the Next Step using the Helper Method
+        for (Opportunity opp : oppList) {
+            removeNextStep(opp);
+        }
 
-    // Helper method to remove the Next Step
-    // Overloaded method to accept an opportunity
+        // Update the Opportunities
+        update oppList;
+
+        // Call the enqueueJob Method to Queue another Job to process more Records.
+        enqueueJob();
+    }
+
+    // Helper Method to remove the Next Step
+    // Overloaded Method to accept an Opportunity
     private static void removeNextStep(Opportunity opp) {
         opp.NextStep = null;
     }
 
-    // Helper method to remove the Next Step
-    // Overloaded method to accept an account
+    // Helper Method to remove the Next Step
+    // Overloaded Method to accept an Account
     private static void removeNextStep(Account acc) {
         acc.Next_Step__c = null;
     }
