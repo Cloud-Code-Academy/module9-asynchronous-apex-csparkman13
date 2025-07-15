@@ -18,6 +18,11 @@
     *       The accompanying test class 'AsynchronousTest' should also be updated to test this method.
     */
 
+    /* Code Notes from 1:1
+    * Q1 - Queried twice, but can query once for Accounts and Opptys via a nested For Loop.
+    * Final (String) Variables - Can declare as a Class Variable vs. a Method Variable.  Would be added on Line 27 to be referenced throughout the NextStepFuture Class.
+    */
+
     public with sharing class NextStepFuture {
 
         /* 
@@ -70,57 +75,24 @@
 
         // Insert Big Deal and update UserRole
         public static void createDealAndUpdateRole() {
-            if (Test.isRunningTest()) {
-                // Synchronous DML allowed during tests
-                Opportunity bigDeal = new Opportunity(
-                    Name = 'Big Deal',
-                    StageName = 'Closed Won',
-                    CloseDate = Date.today(),
-                    Amount = 1000000
-                );
-                insert bigDeal;
-
-                List<UserRole> roles = [
-                    SELECT Id, Name
-                    FROM UserRole
-                    WHERE Id = :UserInfo.getUserRoleId() OR Name = 'CRO'
-                    LIMIT 1
-                ];
-
-                UserRole role;
-                if (roles.isEmpty()) {
-                    role = new UserRole(
-                        portalType = 'None',
-                        CaseAccessForAccountOwner = 'Edit',
-                        Name = 'CRO'
-                    );
-                } else {
-                    role = roles[0];
-                    role.Name = 'CRO';
-                }
-                upsert role;
-                } else {
-                    // Async DML separation for production
-                    insertBigDealAsync();
-                    updateUserRoleNameAsync();
-                }
+            insertBigDeal();
+            updateUserRoleName();
         }
 
-        // Future Method - Insert Opportunity
-        @future
-        private static void insertBigDealAsync() {
-            Opportunity opp = new Opportunity(
-                Name = 'Big Deal',
-                StageName = 'Closed Won',
-                CloseDate = Date.today(),
-                Amount = 1000000
-            );
+        // Helper Method to insert big deal
+        private static void insertBigDeal() {
+            Opportunity opp = new Opportunity();
+            opp.Amount = 1000000;
+            opp.Name = 'Big Deal';
+            opp.StageName = 'Closed Won'; 
+            opp.CloseDate = Date.today();
             insert opp;
         }
 
-        // Future Method - Upsert User Role
-        @future
-        private static void updateUserRoleNameAsync() {
+        // Helper Method to update role name
+        @future // Added @future to ensure the code runs asynchronously, which resolves the mixed DML issue... 
+        // This forces it into its own transaction.
+        private static void updateUserRoleName(){
             List<UserRole> roles = [
                 SELECT Id, Name
                 FROM UserRole
@@ -129,41 +101,17 @@
             ];
 
             UserRole role;
+
             if (roles.isEmpty()) {
-                role = new UserRole(
-                    portalType = 'None',
-                    CaseAccessForAccountOwner = 'Edit',
-                    Name = 'CRO'
-                );
+                role = new UserRole();
+                role.portalType = 'None'; 
+                role.CaseAccessForAccountOwner = 'Edit'; 
+                role.OpportunityAccessForAccountOwner = 'Edit'; 
+                // This may need to be uncommented depending on your orgs Organization Wide Defaults(OWD) settings. If you are receiving FIELD_INTEGRITY_EXCEPTION, field integrity exception: unknown (Opportunity access level below organization default): [unknown], uncomment this line.
             } else {
                 role = roles[0];
-                role.Name = 'CRO';
             }
+            role.Name = 'CRO';
             upsert role;
-            }
         }
-
-    //     // Helper Method to insert big deal
-    //     private static void insertBigDeal(Opportunity opp) {
-    //         opp.Amount = 1000000;
-    //         opp.Name = 'Big Deal';
-    //         opp.StageName = 'Closed Won'; 
-    //         opp.CloseDate = Date.today();
-    //         insert opp;
-    //     }
-
-    //     // Helper Method to update role name
-    //     private static void updateUserRoleName(UserRole[] roles){
-    //         UserRole role;
-    //         if (roles.isEmpty()) {
-    //             role = new UserRole();
-    //             role.portalType = 'None'; 
-    //             role.CaseAccessForAccountOwner = 'Edit'; 
-    //             // role.OpportunityAccessForAccountOwner = 'Edit'; // This may need to be uncommented depending on your orgs Organization Wide Defaults(OWD) settings. If you are receiving FIELD_INTEGRITY_EXCEPTION, field integrity exception: unknown (Opportunity access level below organization default): [unknown], uncomment this line.
-    //         } else {
-    //             role = roles[0];
-    //         }
-    //         role.Name = 'CRO';
-    //         upsert role;
-    //     }
-    // }
+    }

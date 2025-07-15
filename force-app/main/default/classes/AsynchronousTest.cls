@@ -63,7 +63,7 @@ public with sharing class AsynchronousTest {
         }
     }
 
-    @IsTest // Failed
+    @IsTest // Passed
     static void nextStepFuture_testCreateDealAndUpdateRole() {        
         Test.startTest();
         NextStepFuture.createDealAndUpdateRole();
@@ -150,11 +150,11 @@ public with sharing class AsynchronousTest {
         }
     }
 
-    /*  // UNCOMMENT TEST METHODS BELOW ONCE THE NextStepSchedule Class is implemented
+      // UNCOMMENT TEST METHODS BELOW ONCE THE NextStepSchedule Class is implemented
         // No changes should be required to the test Methods/code below other than uncommenting them
         // Manually setup the Scheduled Job in Salesforce to run the NextStepSchedule Class
     
-    @IsTest
+    @IsTest // Passed
     static void nextStepSchedule_testExecute() {
         // Create Test Data
         List<Account> testAccounts = new List<Account>();
@@ -192,5 +192,4 @@ public with sharing class AsynchronousTest {
             System.assertEquals('Batching the next meetings together.', opp.NextStep, 'Opportunity NextStep field was not updated correctly.');
         }
     }
-    */
 }

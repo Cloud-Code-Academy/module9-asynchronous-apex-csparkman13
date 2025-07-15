@@ -19,6 +19,8 @@
  * Note: This class contains placeholders and commented sections that need to be updated with actual logic for querying and updating records.
  */
 
+// 1:1 Notes - Can combined the two For Loops.
+
 public with sharing class NextStepBatch implements Database.Batchable<sObject>{
 
     // Start Method - Query all Accounts
